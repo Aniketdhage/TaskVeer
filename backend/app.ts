@@ -3,6 +3,8 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.routes';
+import organizationRoutes from './routes/organization.routes';
+import projectRoutes from './routes/project.routes';
 
 const app = express();
 
@@ -12,6 +14,8 @@ app.use(cookieParser());
 
 // routes
 app.use('/api/auth', authRoutes);
+app.use('/api/organizations', organizationRoutes);
+app.use('/api', projectRoutes);
 
 app.get('/', async (req, res) => {
   try {

@@ -1,6 +1,7 @@
 // types/express.d.ts
+// Augment express-serve-static-core so req.user is recognised everywhere
 
-declare namespace Express {
+declare module 'express-serve-static-core' {
   interface Request {
     user?: {
       id: string;
@@ -8,3 +9,5 @@ declare namespace Express {
     projectRole?: string;
   }
 }
+
+export {};
