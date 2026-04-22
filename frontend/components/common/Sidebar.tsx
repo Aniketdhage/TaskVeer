@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   FolderKanban,
   CheckSquare,
-  Bell,
   LogOut,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -26,9 +26,14 @@ export default function Sidebar() {
   return (
     <aside className="w-60 min-h-screen bg-white border-r flex flex-col py-6 px-4 gap-6">
       {/* Logo */}
-      <div className="px-2">
-        <h1 className="text-xl font-bold text-gray-900">TaskVeer</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Project management</p>
+      <div className="px-2 relative w-full h-40">
+        <Image
+          src="/taskveer-2.png"
+          alt="TaskVeer"
+          fill
+          className="object-contain object-left"
+          priority
+        />
       </div>
 
       {/* Nav */}
@@ -57,12 +62,19 @@ export default function Sidebar() {
       <div className="space-y-2">
         <div className="flex items-center gap-3 px-3 py-2">
           <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs bg-blue-100 text-blue-600">U</AvatarFallback>
+            <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
+              U
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800 truncate">My Account</p>
+            <p className="text-sm font-medium text-gray-800 truncate">
+              My Account
+            </p>
           </div>
-          <button onClick={logout} className="text-gray-400 hover:text-gray-600">
+          <button
+            onClick={logout}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
