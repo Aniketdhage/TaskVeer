@@ -1,15 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import userRoutes from './routes/user.routes';
+import cookieParser from 'cookie-parser';
+import authRoutes from './routes/auth.routes';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
-// use route
-app.use('/api/users', userRoutes);
+// routes
+app.use('/api/auth', authRoutes);
 
 app.get('/', async (req, res) => {
   try {
