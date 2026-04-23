@@ -8,6 +8,7 @@ import {
   Building2,
   ChevronDown,
   Loader2,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useOrganizations } from '@/hooks/useOrganizations';
 import { useProjects } from '@/hooks/useProjects';
+import { projectService } from '@/services/project.service';
+import type { Project } from '@/services/project.service';
 
 export default function ProjectsPage() {
   const {
@@ -54,6 +57,13 @@ export default function ProjectsPage() {
   const [projectName, setProjectName] = useState('');
   const [projectSubmitting, setProjectSubmitting] = useState(false);
 
+  // Invite member dialog
+  const [inviteProject, setInviteProject] = useState<Project | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<string | null>(null);
+
   const handleCreateOrg = async () => {
     if (!orgName.trim()) return;
     setOrgSubmitting(true);
@@ -76,6 +86,26 @@ export default function ProjectsPage() {
       setProjectDialogOpen(false);
     } finally {
       setProjectSubmitting(false);
+    }
+  };
+
+  const handleInviteMember = async () => {
+    if (!inviteEmail.trim() || !inviteProject) return;
+    setInviteSubmitting(true);
+    setInviteResult(null);
+    try {
+      const res = await projectService.addMember(inviteProject._id, {
+        email: inviteEmail.trim(),
+        role: inviteRole,
+      });
+      setInviteResult((res.data as { message: string }).message);
+      setInviteEmail('');
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Failed to send invitation';
+      setInviteResult(msg);
+    } finally {
+      setInviteSubmitting(false);
     }
   };
 
@@ -238,14 +268,28 @@ export default function ProjectsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
                 >
-                  <Card className="rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <Card className="rounded-xl shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                      <div className="p-2 bg-blue-50 rounded-lg">
+                      <div className="p-2 bg-blue-50 rounded-lg shrink-0">
                         <FolderKanban className="w-4 h-4 text-blue-500" />
                       </div>
-                      <CardTitle className="text-sm font-semibold">
+                      <CardTitle className="text-sm font-semibold flex-1 truncate">
                         {project.name}
                       </CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 gap-1 text-xs shrink-0"
+                        onClick={() => {
+                          setInviteProject(project);
+                          setInviteEmail('');
+                          setInviteRole('member');
+                          setInviteResult(null);
+                        }}
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        Invite
+                      </Button>
                     </CardHeader>
                     <CardContent className="text-xs text-gray-400">
                       Created {new Date(project.createdAt).toLocaleDateString()}
@@ -257,6 +301,76 @@ export default function ProjectsPage() {
           )}
         </>
       )}
+
+      {/* Invite Member Dialog */}
+      <Dialog
+        open={!!inviteProject}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInviteProject(null);
+            setInviteResult(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-gray-500">
+              Project:{' '}
+              <span className="font-medium text-gray-800">
+                {inviteProject?.name}
+              </span>
+            </p>
+            <Input
+              placeholder="Email address"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleInviteMember()}
+            />
+            {/* Role selector */}
+            <div className="flex gap-2">
+              {(['member', 'admin'] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setInviteRole(r)}
+                  className={`flex-1 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                    inviteRole === r
+                      ? 'bg-blue-50 border-blue-400 text-blue-600'
+                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </button>
+              ))}
+            </div>
+            {inviteResult && (
+              <p
+                className={`text-sm rounded-lg px-3 py-2 ${
+                  inviteResult.toLowerCase().includes('added') ||
+                  inviteResult.toLowerCase().includes('saved')
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-red-50 text-red-600'
+                }`}
+              >
+                {inviteResult}
+              </p>
+            )}
+            <Button
+              className="w-full"
+              onClick={handleInviteMember}
+              disabled={inviteSubmitting || !inviteEmail.trim()}
+            >
+              {inviteSubmitting && (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              )}
+              Send Invite
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

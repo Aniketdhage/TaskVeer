@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/user.model';
 import { generateToken } from '../utils/generateToken';
+import { ProjectInvite } from '../models/projectInvite.model';
+import { OrganizationMember } from '../models/organization_member.model';
+import { ProjectMember } from '../models/project_member.model';
 
 const sendTokenCookie = (res: Response, token: string) => {
   res.cookie('token', token, {
@@ -31,6 +34,28 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const token = generateToken(user._id.toString());
     sendTokenCookie(res, token);
+
+    // Auto-join pending project invites
+    const invites = await ProjectInvite.find({ email: user.email });
+    for (const invite of invites) {
+      const orgMember = await OrganizationMember.findOne({
+        organization: invite.organization,
+        user: user._id,
+      });
+      if (!orgMember) {
+        await OrganizationMember.create({
+          organization: invite.organization,
+          user: user._id,
+          role: 'member',
+        });
+      }
+      await ProjectMember.create({
+        project: invite.project,
+        user: user._id,
+        role: invite.role,
+      });
+    }
+    await ProjectInvite.deleteMany({ email: user.email });
 
     res.status(201).json({
       _id: user._id,
