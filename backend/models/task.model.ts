@@ -51,6 +51,14 @@ const taskSchema = new mongoose.Schema(
     },
 
     dueDate: Date,
+
+    statusHistory: [
+      {
+        status: { type: String },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      },
+    ],
   },
   { timestamps: true }
 );

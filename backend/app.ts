@@ -5,6 +5,9 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.routes';
 import organizationRoutes from './routes/organization.routes';
 import projectRoutes from './routes/project.routes';
+import taskRoutes from './routes/task.routes';
+import commentRoutes from './routes/comment.routes';
+import attachmentRoutes from './routes/attachment.routes';
 
 const app = express();
 
@@ -16,6 +19,9 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api', projectRoutes);
+app.use('/api', taskRoutes);
+app.use('/api', commentRoutes);
+app.use('/api', attachmentRoutes);
 
 app.get('/', async (req, res) => {
   try {

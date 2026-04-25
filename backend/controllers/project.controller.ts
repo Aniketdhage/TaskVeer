@@ -59,7 +59,23 @@ export const getProjectsByOrganization = async (
 
     const projects = await Project.find({ organization: orgId });
 
-    res.json(projects);
+    // attach current user's role for each project
+    const projectIds = projects.map((p) => p._id);
+    const memberships = await ProjectMember.find({
+      project: { $in: projectIds },
+      user: userId,
+    });
+    const roleMap: Record<string, string> = {};
+    memberships.forEach((m) => {
+      roleMap[m.project.toString()] = m.role;
+    });
+
+    const result = projects.map((p) => ({
+      ...p.toObject(),
+      currentUserRole: roleMap[p._id.toString()] ?? null,
+    }));
+
+    res.json(result);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -137,6 +153,29 @@ export const addProjectMember = async (req: Request, res: Response) => {
       message: 'Invitation saved (user not registered yet)',
       invited: true,
     });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET PROJECT MEMBERS (for assignee dropdown)
+export const getProjectMembers = async (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.params;
+
+    const members = await ProjectMember.find({ project: projectId }).populate(
+      'user',
+      'name email'
+    );
+
+    const formatted = members.map((m: any) => ({
+      userId: m.user._id,
+      name: m.user.name,
+      email: m.user.email,
+      role: m.role,
+    }));
+
+    res.json(formatted);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

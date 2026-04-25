@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const attachmentSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
+    publicId: String,
     fileName: String,
 
     task: {
