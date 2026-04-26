@@ -3,50 +3,41 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
-  CalendarDays,
-  User2,
-  Flag,
-  MessageSquare,
-  Send,
-  Loader2,
-  Clock,
-  Paperclip,
-  Upload,
-  Trash2,
-  ZoomIn,
-  Download,
-  ChevronLeft,
-  ChevronRight,
+  X, CalendarDays, User2, Flag, MessageSquare, Send, Loader2,
+  Clock, Paperclip, Upload, Trash2, ZoomIn, Download,
+  ChevronLeft, ChevronRight, ChevronDown, Check,
+  Circle, Timer, FlaskConical, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Task } from '@/services/task.service';
+import { Task, taskService, ProjectMember } from '@/services/task.service';
 import { commentService, Comment } from '@/services/comment.service';
 import { attachmentService, Attachment } from '@/services/attachment.service';
+import toast from 'react-hot-toast';
 
 interface TaskDetailModalProps {
   task: Task | null;
   onClose: () => void;
+  onUpdate?: (updated: Task) => void;
+  projectId?: string | null;
 }
 
 type Tab = 'comments' | 'attachments';
+type Status = 'todo' | 'in-progress' | 'testing' | 'done';
 
-const priorityColor: Record<string, string> = {
-  high: 'text-red-500',
-  medium: 'text-blue-500',
-  low: 'text-gray-400',
-};
+const STATUSES: {
+  id: Status; label: string; icon: React.ElementType;
+  color: string; bg: string; border: string;
+}[] = [
+  { id: 'todo',        label: 'To Do',       icon: Circle,       color: 'text-gray-600',   bg: 'bg-gray-100',  border: 'border-gray-300'   },
+  { id: 'in-progress', label: 'In Progress', icon: Timer,        color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-300'   },
+  { id: 'testing',     label: 'Testing',     icon: FlaskConical, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-300' },
+  { id: 'done',        label: 'Done',        icon: CheckCircle2, color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-300'  },
+];
 
-const statusColor: Record<string, string> = {
-  todo: 'bg-gray-100 text-gray-600',
-  'in-progress': 'bg-blue-50 text-blue-600',
-  done: 'bg-green-50 text-green-600',
-};
-
-const statusLabel: Record<string, string> = {
-  todo: 'To Do',
-  'in-progress': 'In Progress',
-  done: 'Done',
+const priorityConfig = {
+  high:   { label: 'High',   color: 'text-red-600',  bg: 'bg-red-50',   border: 'border-red-200'  },
+  medium: { label: 'Medium', color: 'text-blue-600', bg: 'bg-blue-50',  border: 'border-blue-200' },
+  low:    { label: 'Low',    color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' },
 };
 
 function timeAgo(dateStr: string) {
@@ -59,10 +50,7 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-export default function TaskDetailModal({
-  task,
-  onClose,
-}: TaskDetailModalProps) {
+export default function TaskDetailModal({ task, onClose, onUpdate, projectId }: TaskDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('comments');
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -77,11 +65,33 @@ export default function TaskDetailModal({
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  // Edit state
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editPriority, setEditPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [editAssignees, setEditAssignees] = useState<string[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  // Status dropdown
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState<Status>('todo');
+  const [statusSaving, setStatusSaving] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!task) return;
+    setEditTitle(task.title);
+    setEditDesc(task.description ?? '');
+    setEditDueDate(task.dueDate ? task.dueDate.slice(0, 10) : '');
+    setEditPriority(task.priority);
+    setEditAssignees(task.assignedTo.map((a) => a.user._id));
+    setCurrentStatus(task.status as Status);
+    setDirty(false);
     setComments([]);
     setAttachments([]);
     setNewComment('');
@@ -89,47 +99,96 @@ export default function TaskDetailModal({
     initialLoadRef.current = true;
 
     setCommentsLoading(true);
-    initialLoadRef.current = true;
-    commentService
-      .getByTask(task._id)
+    commentService.getByTask(task._id)
       .then((res) => setComments(res.data))
       .catch(() => {})
       .finally(() => setCommentsLoading(false));
 
     setAttachmentsLoading(true);
-    attachmentService
-      .getByTask(task._id)
+    attachmentService.getByTask(task._id)
       .then((res) => setAttachments(res.data))
       .catch(() => {})
       .finally(() => setAttachmentsLoading(false));
   }, [task]);
 
   useEffect(() => {
-    // Only auto-scroll after a new comment is posted (not on initial load)
+    if (!projectId) return;
+    taskService.getMembers(projectId)
+      .then((res) => setMembers(res.data))
+      .catch(() => {});
+  }, [projectId]);
+
+  useEffect(() => {
     if (activeTab === 'comments' && !initialLoadRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-    if (!commentsLoading) {
-      initialLoadRef.current = false;
-    }
+    if (!commentsLoading) initialLoadRef.current = false;
   }, [comments, activeTab, commentsLoading]);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (lightboxIdx === null) return;
-      if (e.key === 'Escape') setLightboxIdx(null);
-      if (e.key === 'ArrowLeft')
-        setLightboxIdx((i) => (i! > 0 ? i! - 1 : attachments.length - 1));
-      if (e.key === 'ArrowRight')
-        setLightboxIdx((i) => (i! < attachments.length - 1 ? i! + 1 : 0));
-    },
-    [lightboxIdx, attachments.length]
-  );
+  useEffect(() => {
+    if (!statusOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+        setStatusOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [statusOpen]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (lightboxIdx === null) return;
+    if (e.key === 'Escape') setLightboxIdx(null);
+    if (e.key === 'ArrowLeft') setLightboxIdx((i) => (i! > 0 ? i! - 1 : attachments.length - 1));
+    if (e.key === 'ArrowRight') setLightboxIdx((i) => (i! < attachments.length - 1 ? i! + 1 : 0));
+  }, [lightboxIdx, attachments.length]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  const handleStatusChange = async (status: Status) => {
+    if (!task || status === currentStatus) { setStatusOpen(false); return; }
+    setStatusSaving(true);
+    setStatusOpen(false);
+    try {
+      const res = await taskService.updateStatus(task._id, status);
+      setCurrentStatus(status);
+      onUpdate?.(res.data);
+      toast.success(`Status → ${STATUSES.find((s) => s.id === status)?.label}`);
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!task) return;
+    setSaving(true);
+    try {
+      const res = await taskService.update(task._id, {
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        priority: editPriority,
+        dueDate: editDueDate || undefined,
+        assignedTo: editAssignees,
+      });
+      onUpdate?.(res.data);
+      setDirty(false);
+      toast.success('Task updated!');
+    } catch {
+      toast.error('Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAssignee = (uid: string) => {
+    setEditAssignees((prev) => prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]);
+    setDirty(true);
+  };
 
   const handlePostComment = async () => {
     if (!newComment.trim() || !task) return;
@@ -179,6 +238,9 @@ export default function TaskDetailModal({
 
   if (!task) return null;
 
+  const currentStatusCfg = STATUSES.find((s) => s.id === currentStatus)!;
+  const StatusIcon = currentStatusCfg.icon;
+
   return (
     <AnimatePresence>
       {task && (
@@ -218,9 +280,7 @@ export default function TaskDetailModal({
                     className="absolute left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLightboxIdx((i) =>
-                        i! > 0 ? i! - 1 : attachments.length - 1
-                      );
+                      setLightboxIdx((i) => (i! > 0 ? i! - 1 : attachments.length - 1));
                     }}
                   >
                     <ChevronLeft className="w-6 h-6" />
@@ -241,9 +301,7 @@ export default function TaskDetailModal({
                     className="absolute right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLightboxIdx((i) =>
-                        i! < attachments.length - 1 ? i! + 1 : 0
-                      );
+                      setLightboxIdx((i) => (i! < attachments.length - 1 ? i! + 1 : 0));
                     }}
                   >
                     <ChevronRight className="w-6 h-6" />
@@ -282,12 +340,13 @@ export default function TaskDetailModal({
             {/* Header */}
             <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4 border-b">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-1">
-                  Task
-                </p>
-                <h2 className="text-lg font-bold text-gray-900 leading-snug">
-                  {task.title}
-                </h2>
+                <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-2">Task</p>
+                <input
+                  value={editTitle}
+                  onChange={(e) => { setEditTitle(e.target.value); setDirty(true); }}
+                  className="w-full text-lg font-bold text-gray-900 leading-snug bg-transparent border-b border-transparent hover:border-gray-200 focus:border-blue-400 focus:outline-none rounded transition-colors pb-0.5"
+                  placeholder="Task title"
+                />
               </div>
               <button
                 onClick={onClose}
@@ -298,81 +357,142 @@ export default function TaskDetailModal({
             </div>
 
             {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-              {/* Meta chips */}
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    statusColor[task.status]
-                  }`}
-                >
-                  {statusLabel[task.status]}
-                </span>
-                <span
-                  className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-50 ${
-                    priorityColor[task.priority]
-                  }`}
-                >
-                  <Flag className="w-3 h-3" />
-                  {task.priority.charAt(0).toUpperCase() +
-                    task.priority.slice(1)}{' '}
-                  Priority
-                </span>
-                {task.dueDate && (
-                  <span className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">
-                    <CalendarDays className="w-3 h-3" />
-                    {new Date(task.dueDate).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </span>
-                )}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+              {/* Status + Priority */}
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Status dropdown */}
+                <div className="relative" ref={statusRef}>
+                  <button
+                    onClick={() => setStatusOpen((o) => !o)}
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${currentStatusCfg.bg} ${currentStatusCfg.border} ${currentStatusCfg.color} hover:brightness-95`}
+                  >
+                    {statusSaving
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <StatusIcon className="w-3.5 h-3.5" />
+                    }
+                    {currentStatusCfg.label}
+                    <ChevronDown className="w-3 h-3 opacity-60" />
+                  </button>
+                  <AnimatePresence>
+                    {statusOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute top-full left-0 mt-1.5 z-10 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden min-w-[160px]"
+                      >
+                        {STATUSES.map((s) => {
+                          const Icon = s.icon;
+                          const isActive = s.id === currentStatus;
+                          return (
+                            <button
+                              key={s.id}
+                              onClick={() => handleStatusChange(s.id)}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
+                                isActive ? `${s.bg} ${s.color}` : 'hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <Icon className={`w-3.5 h-3.5 ${s.color}`} />
+                              {s.label}
+                              {isActive && <Check className="w-3 h-3 ml-auto" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Priority selector */}
+                {(['low', 'medium', 'high'] as const).map((p) => {
+                  const pc = priorityConfig[p];
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => { setEditPriority(p); setDirty(true); }}
+                      className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
+                        editPriority === p
+                          ? `${pc.bg} ${pc.border} ${pc.color}`
+                          : 'border-gray-200 text-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Flag className="w-3 h-3" />
+                      {pc.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Description */}
-              {task.description ? (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Description
-                  </p>
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {task.description}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 italic">
-                  No description provided.
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Description</p>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => { setEditDesc(e.target.value); setDirty(true); }}
+                  rows={3}
+                  placeholder="Add a description…"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none transition"
+                />
+              </div>
+
+              {/* Due date */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                  <CalendarDays className="w-3.5 h-3.5" /> Due Date
                 </p>
-              )}
+                <input
+                  type="date"
+                  value={editDueDate}
+                  onChange={(e) => { setEditDueDate(e.target.value); setDirty(true); }}
+                  className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
+                />
+              </div>
 
               {/* Assignees */}
-              {task.assignedTo?.length > 0 && (
+              {members.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Assigned To
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <User2 className="w-3.5 h-3.5" /> Assigned To
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {task.assignedTo.map((a) => (
-                      <div
-                        key={a.user._id}
-                        className="flex items-center gap-2 bg-blue-50 rounded-full pl-1.5 pr-3 py-1"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center shrink-0">
-                          <User2 className="w-3 h-3 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-blue-700 leading-none">
-                            {a.user.name}
-                          </p>
-                          <p className="text-[10px] text-blue-400 leading-none mt-0.5">
-                            {a.user.email}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {members.map((m) => {
+                      const selected = editAssignees.includes(m.userId);
+                      return (
+                        <button
+                          key={m.userId}
+                          onClick={() => toggleAssignee(m.userId)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                            selected
+                              ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-sm'
+                              : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          <User2 className="w-3 h-3" />
+                          {m.name}
+                          {selected && <Check className="w-3 h-3 ml-0.5" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
+
+              {/* Save button */}
+              {dirty && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                  <Button
+                    className="w-full gap-2"
+                    onClick={handleSave}
+                    disabled={saving || !editTitle.trim()}
+                  >
+                    {saving
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+                      : <><Check className="w-4 h-4" /> Save Changes</>
+                    }
+                  </Button>
+                </motion.div>
               )}
 
               {/* Created by + timestamp */}
@@ -380,17 +500,11 @@ export default function TaskDetailModal({
                 <span className="flex items-center gap-1">
                   <User2 className="w-3.5 h-3.5" />
                   Created by{' '}
-                  <span className="font-medium text-gray-600 ml-1">
-                    {task.createdBy?.name ?? 'Unknown'}
-                  </span>
+                  <span className="font-medium text-gray-600 ml-1">{task.createdBy?.name ?? 'Unknown'}</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  {new Date(task.createdAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                  {new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
 
@@ -399,23 +513,16 @@ export default function TaskDetailModal({
                 <div className="flex gap-1 border-b mb-4">
                   {(['comments', 'attachments'] as Tab[]).map((tab) => {
                     const isActive = activeTab === tab;
-                    const count =
-                      tab === 'comments' ? comments.length : attachments.length;
+                    const count = tab === 'comments' ? comments.length : attachments.length;
                     return (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px ${
-                          isActive
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-400 hover:text-gray-600'
+                          isActive ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
                         }`}
                       >
-                        {tab === 'comments' ? (
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        ) : (
-                          <Paperclip className="w-3.5 h-3.5" />
-                        )}
+                        {tab === 'comments' ? <MessageSquare className="w-3.5 h-3.5" /> : <Paperclip className="w-3.5 h-3.5" />}
                         {tab.charAt(0).toUpperCase() + tab.slice(1)}
                         {count > 0 && (
                           <span className="ml-1 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold">
@@ -432,13 +539,10 @@ export default function TaskDetailModal({
                   <>
                     {commentsLoading ? (
                       <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Loading
-                        comments…
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading comments…
                       </div>
                     ) : comments.length === 0 ? (
-                      <p className="text-sm text-gray-400 italic py-2">
-                        No comments yet. Be the first to comment!
-                      </p>
+                      <p className="text-sm text-gray-400 italic py-2">No comments yet. Be the first to comment!</p>
                     ) : (
                       <div className="space-y-3">
                         {comments.map((c, i) => (
@@ -456,17 +560,11 @@ export default function TaskDetailModal({
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-baseline gap-2 mb-0.5">
-                                <span className="text-xs font-semibold text-gray-700">
-                                  {c.user.name}
-                                </span>
-                                <span className="text-[10px] text-gray-400">
-                                  {timeAgo(c.createdAt)}
-                                </span>
+                                <span className="text-xs font-semibold text-gray-700">{c.user.name}</span>
+                                <span className="text-[10px] text-gray-400">{timeAgo(c.createdAt)}</span>
                               </div>
                               <div className="bg-gray-50 rounded-xl rounded-tl-sm px-3 py-2">
-                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                  {c.text}
-                                </p>
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
                               </div>
                             </div>
                           </motion.div>
@@ -486,19 +584,14 @@ export default function TaskDetailModal({
                       accept="image/*"
                       multiple
                       className="hidden"
-                      onChange={(e) =>
-                        e.target.files && handleUpload(e.target.files)
-                      }
+                      onChange={(e) => e.target.files && handleUpload(e.target.files)}
                     />
                     {attachmentsLoading ? (
                       <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Loading
-                        attachments…
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading attachments…
                       </div>
                     ) : attachments.length === 0 ? (
-                      <p className="text-sm text-gray-400 italic">
-                        No attachments yet.
-                      </p>
+                      <p className="text-sm text-gray-400 italic">No attachments yet.</p>
                     ) : (
                       <div className="grid grid-cols-2 gap-3">
                         {attachments.map((att, idx) => (
@@ -509,63 +602,31 @@ export default function TaskDetailModal({
                             transition={{ delay: idx * 0.04 }}
                             className="group rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm flex flex-col"
                           >
-                            {/* Image */}
                             <div className="relative aspect-[4/3] bg-gray-50 overflow-hidden">
-                              <img
-                                src={att.url}
-                                alt={att.fileName}
-                                className="w-full h-full object-cover"
-                              />
-                              {/* Hover actions */}
+                              <img src={att.url} alt={att.fileName} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <button
-                                  className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition"
-                                  onClick={() => setLightboxIdx(idx)}
-                                >
+                                <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition" onClick={() => setLightboxIdx(idx)}>
                                   <ZoomIn className="w-4 h-4" />
                                 </button>
-                                <button
-                                  className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition"
-                                  onClick={() => handleDownload(att)}
-                                >
+                                <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition" onClick={() => handleDownload(att)}>
                                   <Download className="w-4 h-4" />
                                 </button>
-                                <button
-                                  className="p-2 rounded-full bg-red-500/70 hover:bg-red-500 text-white transition"
-                                  onClick={() => handleDelete(att._id)}
-                                >
+                                <button className="p-2 rounded-full bg-red-500/70 hover:bg-red-500 text-white transition" onClick={() => handleDelete(att._id)}>
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
-                            {/* Meta */}
                             <div className="px-2.5 py-2 space-y-1">
-                              <p
-                                className="text-xs font-semibold text-gray-700 truncate"
-                                title={att.fileName}
-                              >
-                                {att.fileName}
-                              </p>
+                              <p className="text-xs font-semibold text-gray-700 truncate" title={att.fileName}>{att.fileName}</p>
                               <div className="flex items-center gap-1 text-[10px] text-gray-400">
                                 <User2 className="w-3 h-3 shrink-0" />
-                                <span className="truncate">
-                                  {att.uploadedBy?.name ?? 'Unknown'}
-                                </span>
+                                <span className="truncate">{att.uploadedBy?.name ?? 'Unknown'}</span>
                               </div>
                               <div className="flex items-center gap-1 text-[10px] text-gray-400">
                                 <Clock className="w-3 h-3 shrink-0" />
                                 <span>{timeAgo(att.createdAt)}</span>
                                 <span className="text-gray-300">·</span>
-                                <span>
-                                  {new Date(att.createdAt).toLocaleDateString(
-                                    'en-US',
-                                    {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    }
-                                  )}
-                                </span>
+                                <span>{new Date(att.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                               </div>
                             </div>
                           </motion.div>
@@ -577,7 +638,7 @@ export default function TaskDetailModal({
               </div>
             </div>
 
-            {/* Comment input — pinned to bottom */}
+            {/* Comment input */}
             {activeTab === 'comments' && (
               <div className="px-6 py-4 border-t bg-white">
                 <div className="flex gap-2 items-end">
@@ -588,10 +649,7 @@ export default function TaskDetailModal({
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handlePostComment();
-                      }
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePostComment(); }
                     }}
                     className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
                   />
@@ -601,55 +659,29 @@ export default function TaskDetailModal({
                     disabled={posting || !newComment.trim()}
                     onClick={handlePostComment}
                   >
-                    {posting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
+                    {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1.5">
-                  Press Enter to send · Shift+Enter for new line
-                </p>
+                <p className="text-[10px] text-gray-400 mt-1.5">Press Enter to send · Shift+Enter for new line</p>
               </div>
             )}
 
-            {/* Upload zone — pinned to bottom for attachments tab */}
+            {/* Upload zone */}
             {activeTab === 'attachments' && (
               <div className="px-6 py-3 border-t bg-white">
                 <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragging(true);
-                  }}
+                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                   onDragLeave={() => setDragging(false)}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={`flex items-center justify-center gap-2.5 rounded-xl border-2 border-dashed px-4 py-3 cursor-pointer transition-colors ${
-                    dragging
-                      ? 'border-blue-400 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                    dragging ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                   }`}
                 >
                   {uploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
-                      <span className="text-sm text-blue-500 font-medium">
-                        Uploading…
-                      </span>
-                    </>
+                    <><Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" /><span className="text-sm text-blue-500 font-medium">Uploading…</span></>
                   ) : (
-                    <>
-                      <Upload className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span className="text-sm text-gray-500 font-medium">
-                        {dragging
-                          ? 'Drop to upload'
-                          : 'Drag & drop or click to upload'}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-auto">
-                        max 5MB
-                      </span>
-                    </>
+                    <><Upload className="w-4 h-4 text-gray-400 shrink-0" /><span className="text-sm text-gray-500 font-medium">{dragging ? 'Drop to upload' : 'Drag & drop or click to upload'}</span><span className="text-xs text-gray-400 ml-auto">max 5MB</span></>
                   )}
                 </div>
               </div>

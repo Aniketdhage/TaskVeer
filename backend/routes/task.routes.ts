@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createTask,
   getTasksByProject,
+  updateTask,
   updateTaskStatus,
 } from '../controllers/task.controller';
 import { authMiddleware } from '../middleware/  auth.middleware';
@@ -24,5 +25,6 @@ router.get(
 );
 
 router.patch('/tasks/:taskId/status', authMiddleware, updateTaskStatus);
+router.patch('/tasks/:taskId', authMiddleware, updateTask);
 
 export default router;

@@ -33,11 +33,21 @@ export interface CreateTaskPayload {
   assignedTo?: string[];
 }
 
+export interface UpdateTaskPayload {
+  title?: string;
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  dueDate?: string;
+  assignedTo?: string[];
+}
+
 export const taskService = {
   updateStatus: (
     taskId: string,
     status: 'todo' | 'in-progress' | 'testing' | 'done'
   ) => api.patch<Task>(`/tasks/${taskId}/status`, { status }),
+  update: (taskId: string, data: UpdateTaskPayload) =>
+    api.patch<Task>(`/tasks/${taskId}`, data),
   getByProject: (projectId: string) =>
     api.get<Task[]>(`/projects/${projectId}/tasks`),
   create: (projectId: string, data: CreateTaskPayload) =>

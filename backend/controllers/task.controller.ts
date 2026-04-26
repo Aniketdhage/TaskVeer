@@ -57,6 +57,50 @@ export const getTasksByProject = async (req: Request, res: Response) => {
   }
 };
 
+export const updateTask = async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { title, description, priority, dueDate, assignedTo } = req.body;
+    const userId = req.user!.id;
+
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const member = await ProjectMember.findOne({
+      project: task.project,
+      user: userId,
+    });
+    if (!member) return res.status(403).json({ message: 'Access denied' });
+
+    if (title !== undefined) task.title = title;
+    if (description !== undefined) task.description = description;
+    if (priority !== undefined) task.priority = priority;
+    if (dueDate !== undefined) task.dueDate = dueDate || undefined;
+
+    if (assignedTo !== undefined) {
+      const validAssignees: { user: string }[] = [];
+      for (const uid of assignedTo) {
+        const m = await ProjectMember.findOne({
+          project: task.project,
+          user: uid,
+        });
+        if (m) validAssignees.push({ user: uid });
+      }
+      task.assignedTo = validAssignees as any;
+    }
+
+    await task.save();
+
+    const updated = await Task.findById(taskId)
+      .populate('createdBy', 'name email')
+      .populate('assignedTo.user', 'name email');
+
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const updateTaskStatus = async (req: Request, res: Response) => {
   try {
     const { taskId } = req.params;

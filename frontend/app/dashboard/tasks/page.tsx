@@ -42,9 +42,24 @@ type Status = 'todo' | 'in-progress' | 'testing' | 'done';
 type ViewMode = 'board' | 'list';
 
 const priorityConfig = {
-  high:   { label: 'High',   color: 'text-red-600',  bg: 'bg-red-50',   border: 'border-red-200'  },
-  medium: { label: 'Medium', color: 'text-blue-600', bg: 'bg-blue-50',  border: 'border-blue-200' },
-  low:    { label: 'Low',    color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' },
+  high: {
+    label: 'High',
+    color: 'text-red-600',
+    bg: 'bg-red-50',
+    border: 'border-red-200',
+  },
+  medium: {
+    label: 'Medium',
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    border: 'border-blue-200',
+  },
+  low: {
+    label: 'Low',
+    color: 'text-gray-500',
+    bg: 'bg-gray-100',
+    border: 'border-gray-200',
+  },
 };
 
 export default function TasksPage() {
@@ -52,17 +67,24 @@ export default function TasksPage() {
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const activeOrgId = selectedOrgId ?? organizations[0]?._id ?? null;
   const { projects } = useProjects(activeOrgId);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null
+  );
   const activeProjectId = selectedProjectId ?? projects[0]?._id ?? null;
   const activeProject = projects.find((p) => p._id === activeProjectId);
 
-  const { tasks, setTasks, members, loading, createTask } = useTasks(activeProjectId);
+  const { tasks, setTasks, members, loading, createTask } =
+    useTasks(activeProjectId);
 
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CreateTaskPayload>({
-    title: '', description: '', priority: 'medium', dueDate: '', assignedTo: [],
+    title: '',
+    description: '',
+    priority: 'medium',
+    dueDate: '',
+    assignedTo: [],
   });
   const [submitting, setSubmitting] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
@@ -76,7 +98,13 @@ export default function TasksPage() {
         dueDate: form.dueDate || undefined,
         assignedTo: form.assignedTo?.length ? form.assignedTo : undefined,
       });
-      setForm({ title: '', description: '', priority: 'medium', dueDate: '', assignedTo: [] });
+      setForm({
+        title: '',
+        description: '',
+        priority: 'medium',
+        dueDate: '',
+        assignedTo: [],
+      });
       setOpen(false);
       toast.success('Task created!');
     } catch {
@@ -95,19 +123,19 @@ export default function TasksPage() {
     }));
   };
 
-  const moveTask = async (task: Task, dir: 'forward' | 'backward') => {
-    const order: Status[] = ['todo', 'in-progress', 'testing', 'done'];
-    const idx = order.indexOf(task.status as Status);
-    const next = dir === 'forward' ? order[idx + 1] : order[idx - 1];
-    if (!next) return;
+  const handleStatusChange = async (task: Task, status: Status) => {
+    if (task.status === status) return;
     setMovingId(task._id);
     try {
-      const res = await taskService.updateStatus(task._id, next);
+      const res = await taskService.updateStatus(task._id, status);
       setTasks((prev) => prev.map((t) => (t._id === task._id ? res.data : t)));
       const labels: Record<Status, string> = {
-        'todo': 'To Do', 'in-progress': 'In Progress', 'testing': 'Testing', 'done': 'Done',
+        todo: 'To Do',
+        'in-progress': 'In Progress',
+        testing: 'Testing',
+        done: 'Done',
       };
-      toast.success(`Moved to "${labels[next]}"`);
+      toast.success(`Moved to "${labels[status]}"`);
     } catch {
       toast.error('Failed to update status');
     } finally {
@@ -117,7 +145,10 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6 h-full">
-      <Toaster position="top-right" toastOptions={{ style: { fontSize: '13px' } }} />
+      <Toaster
+        position="top-right"
+        toastOptions={{ style: { fontSize: '13px' } }}
+      />
 
       {/* Header */}
       <motion.div
@@ -157,7 +188,11 @@ export default function TasksPage() {
             </button>
           </div>
 
-          <Button className="gap-2" disabled={!activeProjectId} onClick={() => setOpen(true)}>
+          <Button
+            className="gap-2"
+            disabled={!activeProjectId}
+            onClick={() => setOpen(true)}
+          >
             <Plus className="w-4 h-4" /> New Task
           </Button>
         </div>
@@ -170,7 +205,8 @@ export default function TasksPage() {
             <DropdownMenuTrigger
               render={
                 <Button variant="outline" className="h-9 gap-2 text-sm">
-                  {organizations.find((o) => o._id === activeOrgId)?.name ?? 'Organization'}
+                  {organizations.find((o) => o._id === activeOrgId)?.name ??
+                    'Organization'}
                   <ChevronDown className="w-3 h-3 text-gray-400" />
                 </Button>
               }
@@ -179,8 +215,13 @@ export default function TasksPage() {
               {organizations.map((org) => (
                 <DropdownMenuItem
                   key={org._id}
-                  onClick={() => { setSelectedOrgId(org._id); setSelectedProjectId(null); }}
-                  className={activeOrgId === org._id ? 'bg-blue-50 text-blue-600' : ''}
+                  onClick={() => {
+                    setSelectedOrgId(org._id);
+                    setSelectedProjectId(null);
+                  }}
+                  className={
+                    activeOrgId === org._id ? 'bg-blue-50 text-blue-600' : ''
+                  }
                 >
                   {org.name}
                 </DropdownMenuItem>
@@ -204,7 +245,9 @@ export default function TasksPage() {
                 <DropdownMenuItem
                   key={p._id}
                   onClick={() => setSelectedProjectId(p._id)}
-                  className={activeProjectId === p._id ? 'bg-blue-50 text-blue-600' : ''}
+                  className={
+                    activeProjectId === p._id ? 'bg-blue-50 text-blue-600' : ''
+                  }
                 >
                   {p.name}
                 </DropdownMenuItem>
@@ -223,17 +266,31 @@ export default function TasksPage() {
       {!activeProjectId ? (
         <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-16 text-center">
           <FolderKanban className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Select a project to view tasks</p>
-          <p className="text-gray-400 text-sm mt-1">Choose an organization and project from the dropdowns above.</p>
+          <p className="text-gray-500 font-medium">
+            Select a project to view tasks
+          </p>
+          <p className="text-gray-400 text-sm mt-1">
+            Choose an organization and project from the dropdowns above.
+          </p>
         </div>
       ) : loading ? (
         <div className="flex items-center gap-2 text-sm text-gray-400 py-8">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading tasks…
         </div>
       ) : viewMode === 'board' ? (
-        <TaskBoardView tasks={tasks} movingId={movingId} onMove={moveTask} onSelect={setSelectedTask} />
+        <TaskBoardView
+          tasks={tasks}
+          movingId={movingId}
+          onStatusChange={handleStatusChange}
+          onSelect={setSelectedTask}
+        />
       ) : (
-        <TaskListView tasks={tasks} movingId={movingId} onMove={moveTask} onSelect={setSelectedTask} />
+        <TaskListView
+          tasks={tasks}
+          movingId={movingId}
+          onStatusChange={handleStatusChange}
+          onSelect={setSelectedTask}
+        />
       )}
 
       {/* Create Task Dialog */}
@@ -246,32 +303,42 @@ export default function TasksPage() {
             {activeProject && (
               <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-100">
                 <FolderKanban className="w-4 h-4 text-blue-500 shrink-0" />
-                <span className="text-sm font-medium text-blue-700">{activeProject.name}</span>
+                <span className="text-sm font-medium text-blue-700">
+                  {activeProject.name}
+                </span>
               </div>
             )}
             <Input
               placeholder="Task title *"
               value={form.title}
-              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
             />
             <textarea
               placeholder="Description (optional)"
               value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
               rows={3}
               className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
 
             {/* Priority */}
             <div>
-              <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">Priority</p>
+              <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">
+                Priority
+              </p>
               <div className="flex gap-2">
                 {(['low', 'medium', 'high'] as const).map((p) => {
                   const pc = priorityConfig[p];
                   return (
                     <button
                       key={p}
-                      onClick={() => setForm((prev) => ({ ...prev, priority: p }))}
+                      onClick={() =>
+                        setForm((prev) => ({ ...prev, priority: p }))
+                      }
                       className={`flex-1 py-2 rounded-xl border text-xs font-semibold transition-all capitalize ${
                         form.priority === p
                           ? `${pc.bg} ${pc.border} ${pc.color} shadow-sm`
@@ -287,18 +354,24 @@ export default function TasksPage() {
 
             {/* Due date */}
             <div>
-              <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">Due Date</p>
+              <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">
+                Due Date
+              </p>
               <Input
                 type="date"
                 value={form.dueDate}
-                onChange={(e) => setForm((p) => ({ ...p, dueDate: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, dueDate: e.target.value }))
+                }
               />
             </div>
 
             {/* Assignees */}
             {members.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">Assign To</p>
+                <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">
+                  Assign To
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {members.map((m) => {
                     const selected = form.assignedTo?.includes(m.userId);
@@ -322,7 +395,11 @@ export default function TasksPage() {
               </div>
             )}
 
-            <Button className="w-full" onClick={handleSubmit} disabled={submitting || !form.title.trim()}>
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={submitting || !form.title.trim()}
+            >
               {submitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Create Task
             </Button>
@@ -330,7 +407,17 @@ export default function TasksPage() {
         </DialogContent>
       </Dialog>
 
-      <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      <TaskDetailModal
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        projectId={activeProjectId}
+        onUpdate={(updated) => {
+          setTasks((prev) =>
+            prev.map((t) => (t._id === updated._id ? updated : t))
+          );
+          setSelectedTask(updated);
+        }}
+      />
     </div>
   );
 }
