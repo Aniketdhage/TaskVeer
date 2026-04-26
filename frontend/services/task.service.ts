@@ -34,8 +34,10 @@ export interface CreateTaskPayload {
 }
 
 export const taskService = {
-  updateStatus: (taskId: string, status: 'todo' | 'in-progress' | 'testing' | 'done') =>
-    api.patch<Task>(`/tasks/${taskId}/status`, { status }),
+  updateStatus: (
+    taskId: string,
+    status: 'todo' | 'in-progress' | 'testing' | 'done'
+  ) => api.patch<Task>(`/tasks/${taskId}/status`, { status }),
   getByProject: (projectId: string) =>
     api.get<Task[]>(`/projects/${projectId}/tasks`),
   create: (projectId: string, data: CreateTaskPayload) =>
