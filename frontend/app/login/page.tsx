@@ -1,6 +1,18 @@
+import type { Metadata } from 'next';
 import LoginForm from '@/modules/auth/components/LoginForm';
 import Image from 'next/image';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Sign In',
+  description:
+    'Sign in to your TaskVeer account to manage your projects, track tasks, and collaborate with your team.',
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: 'Sign In – TaskVeer',
+    description: 'Sign in to your TaskVeer account.',
+  },
+};
 
 export default function LoginPage() {
   return (

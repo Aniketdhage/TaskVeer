@@ -1,6 +1,19 @@
+import type { Metadata } from 'next';
 import RegisterForm from '@/modules/auth/components/RegisterForm';
 import Image from 'next/image';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Create Account',
+  description:
+    'Create a free TaskVeer account to start managing projects, tracking tasks, and collaborating with your team in minutes.',
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: 'Create Account – TaskVeer',
+    description:
+      'Create a free TaskVeer account and start managing projects with your team today.',
+  },
+};
 
 export default function RegisterPage() {
   return (
