@@ -40,7 +40,7 @@ const taskSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['todo', 'in-progress', 'done'],
+      enum: ['todo', 'in-progress', 'testing', 'done'],
       default: 'todo',
     },
 
@@ -54,7 +54,7 @@ const taskSchema = new mongoose.Schema(
 
     statusHistory: [
       {
-        status: { type: String },
+        status: { type: String, enum: ['todo', 'in-progress', 'testing', 'done'] },
         changedAt: { type: Date, default: Date.now },
         changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       },

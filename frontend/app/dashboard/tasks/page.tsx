@@ -14,6 +14,7 @@ import {
   Circle,
   Timer,
   CheckCircle2,
+  FlaskConical,
   MoreHorizontal,
   ArrowRight,
   ArrowLeft,
@@ -43,7 +44,7 @@ import {
 } from '@/services/task.service';
 import TaskDetailModal from '@/components/task/TaskDetailModal';
 
-type Status = 'todo' | 'in-progress' | 'done';
+type Status = 'todo' | 'in-progress' | 'testing' | 'done';
 
 const COLUMNS: {
   id: Status;
@@ -71,6 +72,15 @@ const COLUMNS: {
     bg: 'bg-blue-50',
     border: 'border-blue-200',
     headerText: 'text-blue-700',
+  },
+  {
+    id: 'testing',
+    label: 'Testing',
+    icon: FlaskConical,
+    color: 'text-purple-500',
+    bg: 'bg-purple-50',
+    border: 'border-purple-200',
+    headerText: 'text-purple-700',
   },
   {
     id: 'done',
@@ -165,7 +175,7 @@ export default function TasksPage() {
   };
 
   const moveTask = async (task: Task, dir: 'forward' | 'backward') => {
-    const order: Status[] = ['todo', 'in-progress', 'done'];
+    const order: Status[] = ['todo', 'in-progress', 'testing', 'done'];
     const idx = order.indexOf(task.status as Status);
     const next = dir === 'forward' ? order[idx + 1] : order[idx - 1];
     if (!next) return;
@@ -292,14 +302,14 @@ export default function TasksPage() {
           <Loader2 className="w-4 h-4 animate-spin" /> Loading tasks…
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
           {COLUMNS.map(
             (
               { id, label, icon: ColIcon, color, bg, border, headerText },
               ci
             ) => {
               const col = tasks.filter((t) => t.status === id);
-              const order: Status[] = ['todo', 'in-progress', 'done'];
+              const order: Status[] = ['todo', 'in-progress', 'testing', 'done'];
               return (
                 <motion.div
                   key={id}
@@ -337,8 +347,7 @@ export default function TasksPage() {
                         const overdue = isOverdue(task.dueDate);
                         const isMoving = movingId === task._id;
                         const taskIdx = order.indexOf(task.status as Status);
-                        return (
-                          <motion.div
+                        return (                          <motion.div
                             key={task._id}
                             layout
                             initial={{ opacity: 0, scale: 0.96 }}
@@ -347,10 +356,10 @@ export default function TasksPage() {
                             transition={{ delay: ti * 0.03 }}
                           >
                             <Card
-                              className="rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group bg-white border border-gray-100 hover:border-blue-200"
+                              className="py-0 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group bg-white border border-gray-100 hover:border-blue-200"
                               onClick={() => setSelectedTask(task)}
                             >
-                              <CardContent className="p-3.5 space-y-2.5">
+                              <CardContent className="px-3.5 pt-3.5 pb-0 space-y-2.5">
                                 {/* Title row */}
                                 <div className="flex items-start justify-between gap-2">
                                   <p className="text-sm font-semibold text-gray-800 leading-snug flex-1">
@@ -381,7 +390,7 @@ export default function TasksPage() {
                                           Move to {COLUMNS[taskIdx - 1].label}
                                         </DropdownMenuItem>
                                       )}
-                                      {taskIdx < 2 && (
+                                      {taskIdx < COLUMNS.length - 1 && (
                                         <DropdownMenuItem
                                           onClick={() =>
                                             moveTask(task, 'forward')
@@ -446,7 +455,7 @@ export default function TasksPage() {
                                 )}
 
                                 {/* Move buttons */}
-                                <div className="flex gap-1.5 pt-0.5">
+                                <div className="flex gap-1.5 pt-0.5 pb-3.5">
                                   {taskIdx > 0 && (
                                     <button
                                       disabled={isMoving}
@@ -464,7 +473,7 @@ export default function TasksPage() {
                                       {COLUMNS[taskIdx - 1].label}
                                     </button>
                                   )}
-                                  {taskIdx < 2 && (
+                                  {taskIdx < COLUMNS.length - 1 && (
                                     <button
                                       disabled={isMoving}
                                       onClick={(e) => {
@@ -474,6 +483,8 @@ export default function TasksPage() {
                                       className={`flex-1 flex items-center justify-center gap-1 text-[11px] font-medium py-1 rounded-lg border transition-colors disabled:opacity-40 ${
                                         id === 'todo'
                                           ? 'border-blue-200 text-blue-600 hover:bg-blue-50'
+                                          : id === 'in-progress'
+                                          ? 'border-purple-200 text-purple-600 hover:bg-purple-50'
                                           : 'border-green-200 text-green-600 hover:bg-green-50'
                                       }`}
                                     >

@@ -63,7 +63,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     const { status } = req.body;
     const userId = req.user!.id;
 
-    const validStatuses = ['todo', 'in-progress', 'done'];
+    const validStatuses = ['todo', 'in-progress', 'testing', 'done'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
