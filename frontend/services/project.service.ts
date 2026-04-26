@@ -10,6 +10,13 @@ export interface Project {
   currentUserRole?: 'admin' | 'member' | null;
 }
 
+export interface ProjectMemberInfo {
+  userId: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member';
+}
+
 export const projectService = {
   getByOrg: (orgId: string) =>
     api.get<Project[]>(`/organizations/${orgId}/projects`),
@@ -19,4 +26,6 @@ export const projectService = {
     projectId: string,
     data: { email: string; role?: 'admin' | 'member' }
   ) => api.post(`/projects/${projectId}/members`, data),
+  getMembers: (projectId: string) =>
+    api.get<ProjectMemberInfo[]>(`/projects/${projectId}/members`),
 };

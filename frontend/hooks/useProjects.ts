@@ -11,7 +11,8 @@ export function useProjects(orgId: string | null) {
     try {
       setLoading(true);
       const res = await projectService.getByOrg(orgId);
-      setProjects(res.data);
+      // Only show projects the current user is a member of
+      setProjects(res.data.filter((p) => p.currentUserRole !== null));
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to fetch projects';

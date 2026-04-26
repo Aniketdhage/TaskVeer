@@ -35,7 +35,7 @@ export default function Sidebar() {
     : 'U';
 
   return (
-    <aside className="w-60 min-h-screen bg-white border-r flex flex-col py-6 px-4 gap-6">
+    <aside className="w-60 h-screen sticky top-0 bg-white border-r flex flex-col py-6 px-4 gap-6 overflow-y-auto shrink-0">
       {/* Logo */}
       <div className="w-full flex items-center justify-center px-2 -my-1">
         <Image

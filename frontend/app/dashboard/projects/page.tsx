@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus,
@@ -9,6 +9,10 @@ import {
   ChevronDown,
   Loader2,
   UserPlus,
+  Users,
+  Shield,
+  User2,
+  CheckSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +32,7 @@ import {
 import { useOrganizations } from '@/hooks/useOrganizations';
 import { useProjects } from '@/hooks/useProjects';
 import { projectService } from '@/services/project.service';
-import type { Project } from '@/services/project.service';
+import type { Project, ProjectMemberInfo } from '@/services/project.service';
 
 export default function ProjectsPage() {
   const {
@@ -63,6 +67,26 @@ export default function ProjectsPage() {
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteResult, setInviteResult] = useState<string | null>(null);
+
+  // Member counts per project
+  const [memberMap, setMemberMap] = useState<
+    Record<string, ProjectMemberInfo[]>
+  >({});
+
+  // Load members for all visible projects
+  useEffect(() => {
+    if (!projects.length) return;
+    projects.forEach((p) => {
+      if (memberMap[p._id]) return; // already loaded
+      projectService
+        .getMembers(p._id)
+        .then((res) => {
+          setMemberMap((prev) => ({ ...prev, [p._id]: res.data }));
+        })
+        .catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects]);
 
   const handleCreateOrg = async () => {
     if (!orgName.trim()) return;
@@ -276,23 +300,81 @@ export default function ProjectsPage() {
                       <CardTitle className="text-sm font-semibold flex-1 truncate">
                         {project.name}
                       </CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 gap-1 text-xs shrink-0"
-                        onClick={() => {
-                          setInviteProject(project);
-                          setInviteEmail('');
-                          setInviteRole('member');
-                          setInviteResult(null);
-                        }}
+                      {/* Role badge */}
+                      <span
+                        className={`shrink-0 flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          project.currentUserRole === 'admin'
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
                       >
-                        <UserPlus className="w-3 h-3" />
-                        Invite
-                      </Button>
+                        {project.currentUserRole === 'admin' ? (
+                          <>
+                            <Shield className="w-2.5 h-2.5" /> Admin
+                          </>
+                        ) : (
+                          <>
+                            <User2 className="w-2.5 h-2.5" /> Member
+                          </>
+                        )}
+                      </span>
+                      {/* Invite button — admin only */}
+                      {project.currentUserRole === 'admin' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 gap-1 text-xs shrink-0"
+                          onClick={() => {
+                            setInviteProject(project);
+                            setInviteEmail('');
+                            setInviteRole('member');
+                            setInviteResult(null);
+                          }}
+                        >
+                          <UserPlus className="w-3 h-3" />
+                          Invite
+                        </Button>
+                      )}
                     </CardHeader>
-                    <CardContent className="text-xs text-gray-400">
-                      Created {new Date(project.createdAt).toLocaleDateString()}
+                    <CardContent className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {memberMap[project._id]
+                            ? `${memberMap[project._id].length} member${
+                                memberMap[project._id].length !== 1 ? 's' : ''
+                              }`
+                            : '…'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <CheckSquare className="w-3 h-3" />
+                          Created{' '}
+                          {new Date(project.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {/* Member avatars */}
+                      {memberMap[project._id]?.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {memberMap[project._id].slice(0, 5).map((m) => (
+                            <div
+                              key={m.userId}
+                              title={`${m.name} (${m.role})`}
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-sm ${
+                                m.role === 'admin'
+                                  ? 'bg-blue-200 text-blue-700'
+                                  : 'bg-gray-200 text-gray-600'
+                              }`}
+                            >
+                              {m.name.charAt(0).toUpperCase()}
+                            </div>
+                          ))}
+                          {memberMap[project._id].length > 5 && (
+                            <span className="text-[10px] text-gray-400 ml-0.5">
+                              +{memberMap[project._id].length - 5}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
