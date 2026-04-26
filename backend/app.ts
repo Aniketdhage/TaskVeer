@@ -8,6 +8,8 @@ import projectRoutes from './routes/project.routes';
 import taskRoutes from './routes/task.routes';
 import commentRoutes from './routes/comment.routes';
 import attachmentRoutes from './routes/attachment.routes';
+import activityRoutes from './routes/activity.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.use('/api', projectRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', attachmentRoutes);
+app.use('/api', activityRoutes);
+app.use('/api', dashboardRoutes);
 
 app.get('/', async (req, res) => {
   try {
