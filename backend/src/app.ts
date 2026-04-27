@@ -15,19 +15,23 @@ import dashboardRoutes from './routes/dashboard.routes';
 const app = express();
 
 const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL, // set on Render: your Vercel URL
+  process.env.CLIENT_URL, // Render env var → https://taskveer.vercel.app
+  'https://taskveer.vercel.app', // hardcoded fallback
+  'https://www.taskveer.vercel.app',
   'http://localhost:3000', // local dev
 ].filter(Boolean) as string[];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (health checkers, curl, etc.)
+      // Allow requests with no origin (UptimeRobot, curl, Vercel rewrite proxy)
       if (!origin) return callback(null, true);
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
       callback(new Error(`CORS blocked: ${origin}`));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
