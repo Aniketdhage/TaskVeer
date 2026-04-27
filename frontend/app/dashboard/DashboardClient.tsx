@@ -79,18 +79,18 @@ export default function DashboardClient() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               {greeting}, {user?.name?.split(' ')[0] ?? 'there'} 👋
             </h2>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 mt-1 text-sm">
               Here&apos;s what&apos;s happening across your workspace.
             </p>
           </div>
           {stats && (
             <div
-              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+              className={`sm:ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border w-fit ${
                 stats.isAnyAdmin
                   ? 'bg-blue-50 border-blue-200 text-blue-600'
                   : 'bg-gray-50 border-gray-200 text-gray-500'

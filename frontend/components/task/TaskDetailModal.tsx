@@ -671,7 +671,7 @@ export default function TaskDetailModal({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 60 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full sm:max-w-lg bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4 border-b">

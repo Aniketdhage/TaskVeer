@@ -154,42 +154,44 @@ export default function TasksClient() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
       >
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Tasks</h2>
-          <p className="text-gray-500 mt-1">Track and manage your work.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Tasks</h2>
+          <p className="text-gray-500 mt-1 text-sm">
+            Track and manage your work.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
             <button
               onClick={() => setViewMode('board')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === 'board'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              Cards
+              <span className="hidden sm:inline">Cards</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 viewMode === 'list'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <List className="w-3.5 h-3.5" />
-              List
+              <span className="hidden sm:inline">List</span>
             </button>
           </div>
 
           <Button
-            className="gap-2"
+            className="gap-2 h-9 text-sm"
             disabled={!activeProjectId}
             onClick={() => setOpen(true)}
           >

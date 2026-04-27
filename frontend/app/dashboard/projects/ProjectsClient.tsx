@@ -139,23 +139,26 @@ export default function ProjectsClient() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
       >
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Projects
+          </h2>
+          <p className="text-gray-500 mt-1 text-sm">
             Manage and track all your projects.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* New Org */}
           <Button
             variant="outline"
-            className="gap-2"
+            className="gap-2 text-sm h-9"
             onClick={() => setOrgDialogOpen(true)}
           >
             <Building2 className="w-4 h-4" />
-            New Organization
+            <span className="hidden sm:inline">New Organization</span>
+            <span className="sm:hidden">New Org</span>
           </Button>
           <Dialog open={orgDialogOpen} onOpenChange={setOrgDialogOpen}>
             <DialogContent>
@@ -185,7 +188,7 @@ export default function ProjectsClient() {
 
           {/* New Project */}
           <Button
-            className="gap-2"
+            className="gap-2 text-sm h-9"
             disabled={!activeOrgId}
             onClick={() => setProjectDialogOpen(true)}
           >

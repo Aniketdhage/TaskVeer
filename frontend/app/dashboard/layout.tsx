@@ -19,7 +19,10 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar />
-      <main className="flex-1 p-8 overflow-y-auto">{children}</main>
+      {/* pt-14 = mobile top bar height, pb-16 = mobile bottom nav height */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-18 pb-20 lg:pt-8 lg:pb-8">
+        {children}
+      </main>
     </div>
   );
 }
