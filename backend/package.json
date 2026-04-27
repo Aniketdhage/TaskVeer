@@ -1,16 +1,25 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "server.ts",
+  "description": "TaskVeer Backend API",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node server.ts",
+    "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
-  "keywords": [],
-  "author": "",
+  "engines": {
+    "node": "20.x"
+  },
+  "keywords": [
+    "taskveer",
+    "nodejs",
+    "express",
+    "mongodb",
+    "typescript"
+  ],
+  "author": "Aniket Dhage",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
