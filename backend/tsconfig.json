@@ -20,7 +20,5 @@
 
   "include": ["src/**/*.ts"],
 
-  "files": ["types/express.d.ts"],
-
   "exclude": ["node_modules", "dist"]
 }

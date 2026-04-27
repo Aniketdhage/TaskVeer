@@ -4,7 +4,7 @@ import {
   getTaskAttachments,
   deleteAttachment,
 } from '../controllers/attachment.controller';
-import { authMiddleware } from '../middleware/  auth.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
 
 const router = express.Router();

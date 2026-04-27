@@ -3,7 +3,7 @@ import {
   createOrganization,
   getUserOrganizations,
 } from '../controllers/organization.controller';
-import { authMiddleware } from '../middleware/  auth.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = express.Router();
 

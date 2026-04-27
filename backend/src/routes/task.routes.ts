@@ -5,8 +5,8 @@ import {
   updateTask,
   updateTaskStatus,
 } from '../controllers/task.controller';
-import { authMiddleware } from '../middleware/  auth.middleware';
-import { isProjectMember } from '../middleware/  project.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
+import { isProjectMember } from '../middleware/project.middleware';
 
 const router = express.Router();
 
