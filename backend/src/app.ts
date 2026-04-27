@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
+import healthRoutes from './routes/health.routes';
 import authRoutes from './routes/auth.routes';
 import organizationRoutes from './routes/organization.routes';
 import projectRoutes from './routes/project.routes';
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // routes
+app.use('/api/health', healthRoutes);        // ← no auth, first — for UptimeRobot / Render keep-alive
 app.use('/api/auth', authRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api', projectRoutes);
