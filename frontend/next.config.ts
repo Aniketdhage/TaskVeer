@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://taskveer.onrender.com';
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? 'https://taskveer.onrender.com';
 
 const nextConfig: NextConfig = {
   images: {

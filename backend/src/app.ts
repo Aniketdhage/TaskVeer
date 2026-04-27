@@ -15,8 +15,8 @@ import dashboardRoutes from './routes/dashboard.routes';
 const app = express();
 
 const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL,          // set on Render: your Vercel URL
-  'http://localhost:3000',          // local dev
+  process.env.CLIENT_URL, // set on Render: your Vercel URL
+  'http://localhost:3000', // local dev
 ].filter(Boolean) as string[];
 
 app.use(

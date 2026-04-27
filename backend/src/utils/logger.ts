@@ -14,8 +14,8 @@ const log = (level: LogLevel, context: string, message: string): void => {
 };
 
 export const logger = {
-  info:  (context: string, message: string) => log('INFO',  context, message),
-  warn:  (context: string, message: string) => log('WARN',  context, message),
+  info: (context: string, message: string) => log('INFO', context, message),
+  warn: (context: string, message: string) => log('WARN', context, message),
   error: (context: string, message: string) => log('ERROR', context, message),
   debug: (context: string, message: string) => log('DEBUG', context, message),
 };
