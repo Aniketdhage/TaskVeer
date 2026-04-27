@@ -43,6 +43,7 @@ export const useAuth = () => {
     try {
       const res = await authService.login({ email, password });
       saveUser(res.data as AuthUser);
+      router.refresh();          // re-run middleware so the new cookie is seen
       router.push('/dashboard');
     } catch {
       setError('Invalid email or password');
@@ -57,6 +58,7 @@ export const useAuth = () => {
     try {
       const res = await authService.register({ name, email, password });
       saveUser(res.data as AuthUser);
+      router.refresh();          // re-run middleware so the new cookie is seen
       router.push('/dashboard');
     } catch {
       setError('Registration failed. Please try again.');

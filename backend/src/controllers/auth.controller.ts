@@ -7,10 +7,13 @@ import { OrganizationMember } from '../models/organization_member.model';
 import { ProjectMember } from '../models/project_member.model';
 
 const sendTokenCookie = (res: Response, token: string) => {
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    // With the Next.js /api proxy the cookie is same-origin, so 'lax' is fine.
+    // 'none' is only needed for direct cross-origin requests (no proxy).
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
